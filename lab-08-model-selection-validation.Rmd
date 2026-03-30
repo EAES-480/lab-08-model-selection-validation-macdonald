@@ -229,7 +229,7 @@ tibble(
 ```
 
 > In words, what do SST and SSE represent?
-
+*SST is the total sum of square, which represents the total variability in the data set from the perspective of the line of best fit. SSE is the sum of squared error which tells us the total amount of unexplained error from the model.*
 ---
 
 ## 8) Compute R-squared manually for Model 1
@@ -272,7 +272,7 @@ tibble(
 ```
 
 > What does RMSE mean in the units of your response variable?
-
+*It means that for every point along the line of best fit there is an average error of 8.52 grams C / m^2 / day*
 ---
 
 ## 11) Compare all three models using `glance()`
@@ -288,6 +288,7 @@ bind_rows(
 
 > Which model has the highest R-squared? Is that enough to call it the best model?
 
+*The third model has the highest R-squared. This is not necessarily enough to call it the best model. We also have to look at how well fitted it is with respect to residuals and error.*
 ---
 
 ## 12) Compare all three models using RMSE
@@ -309,7 +310,7 @@ rmse_tbl
 ```
 
 > Which model has the smallest RMSE? Does that agree with the R-squared ranking?
-
+*The third model has the highest RMSE, which does agree with the R-squared ranking.*
 ---
 
 ## 13) Compare residual plots
@@ -329,7 +330,7 @@ ggplot(aug_m1, aes(x = .fitted, y = .resid)) +
 ```
 
 ```{r resid_plot_m3, echo=TRUE, eval=FALSE}
-ggplot(aug_m2, aes(x = .fitted, y = .resid)) +
+ggplot(aug_m3, aes(x = .fitted, y = .resid)) +
   geom_point(alpha = 0.2) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   theme_classic(base_size = 18) +
@@ -341,7 +342,7 @@ ggplot(aug_m2, aes(x = .fitted, y = .resid)) +
 ```
 
 > Do the residual plots suggest any problems (curvature, changing variance, outliers)? Which model looks more appropriate?
-
+*Models 1 and 3 have very similar residual graphs. They do demonstrate a change in pattern starting around the fitted value 10. This is indicated by a changing variance and shape change.*
 ---
 
 ## 14) Make a model selection decision
@@ -350,16 +351,16 @@ Choose the model you think is best supported by the evidence.
 
 Fill in:
 
-> My preferred model is `___`
+> My preferred model is `3`
 
 > I based this decision on:
-> - `___`
-> - `___`
-> - `___`
+> - `The highest R-squared`
+> - `The lowest RMSE`
+> - `A decent Residual graph`
 
 **Prompt (5–7 sentences):** Explain why you chose this model. Use at least two quantitative criteria (such as R-squared, RMSE, or sigma) and one visual criterion (such as the residual plot or scatterplot). Also explain why a different model was less convincing.
 
-> *Write your answer here.*
+> *I chose this model based on the numbers. It has the highest R-squared and the lowest RMSE. There is some concern regarding the change in variance visible both in the residual graph and the graph of the model, however its residuals never exceed that of the other models, meaning that even its worst residual values is not worse than the residual values of the other models. Model 2 was convincing visually, but by the numbers it was the worst. Visually model 2 was consistent through the graph, with little to no change in variance, however it had the worst R-squared, and the highest RMSE. Model 1 held a similar shape to model 3, however it had just slightly worse numbers compared to model 3. This makes me conclude that model 3 is the strongest model for these predictor and response variables.*
 
 ---
 
