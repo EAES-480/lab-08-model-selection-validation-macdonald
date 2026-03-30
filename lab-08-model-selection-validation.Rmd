@@ -68,7 +68,7 @@ By the end of this lab, you should be able to:
 
 df <- read_csv("data/us-ams-simple.csv", na = c("-9999")) %>%
   clean_names() %>%
-  filter(year_local == ___)
+  filter(year_local == 2023)
 
 glimpse(df)
 ```
@@ -83,6 +83,7 @@ df <- df %>%
     date = as.Date(floor(doy) - 1, origin = paste0(year_local, "-01-01")),
     month = month(date, label = TRUE, abbr = TRUE)
   )
+glimpse(df)
 ```
 
 ---
@@ -100,9 +101,9 @@ Possible examples:
 - predictors: `ta`, `swc`, `vpd`, `rg`
 
 ```{r choose_vars, echo=TRUE, eval=FALSE}
-response_var <- "___"
-pred1 <- "___"
-pred2 <- "___"
+response_var <- "gpp"
+pred1 <- "ta"
+pred2 <- "swc"
 
 # CHECK: do these variables exist?
 c(response_var, pred1, pred2) %in% names(df)
@@ -110,6 +111,7 @@ c(response_var, pred1, pred2) %in% names(df)
 
 > Which variables did you choose, and why do you think they may be related?
 
+*I chose the the response variable gpp. The predictor variables I chose are ta and swc. I believe that gpp will be related to swc because swc is a strong determiner of sap velocity, and turgor pressure in plants, which are heavily related to plant productivity. I similarly chose ta because it is related to the enzyme efficiency in photosynthesis, where it operates ideally around a specific temperature (photosynthetic pathway specific)*
 ---
 
 ## 2) Create a clean analysis dataset
@@ -120,7 +122,7 @@ Keep only rows with non-missing values for your chosen variables.
 # GOAL: Create an analysis data frame using only complete cases.
 
 df_mod <- df %>%
-  select(___, ___, ___) %>%
+  select(response_var, pred1, pred2) %>%
   drop_na()
 
 glimpse(df_mod)
@@ -136,9 +138,9 @@ Fit:
 - **Model 3:** response ~ pred1 + pred2
 
 ```{r fit_models, echo=TRUE, eval=FALSE}
-m1 <- lm(___ ~ ___, data = df_mod)
-m2 <- lm(___ ~ ___, data = df_mod)
-m3 <- lm(___ ~ ___ + ___, data = df_mod)
+m1 <- lm(df_mod[[response_var]] ~ df_mod[[pred1]], data = df_mod)
+m2 <- lm(df_mod[[response_var]] ~ df_mod[[pred2]], data = df_mod)
+m3 <- lm(df_mod[[response_var]] ~ df_mod[[pred1]] + df_mod[[pred2]], data = df_mod)
 ```
 
 ---
@@ -152,7 +154,7 @@ tidy(m3)
 ```
 
 > Which coefficients are positive? Which are negative? Do they make scientific sense?
-
+*The coefficient for the model 2, relating gpp to swc is negative, and so is the same coefficient relationship in model 3. This means that as swc increases total gpp decreases. This is somewhat counterintuitive to me because increased water availability should result in higher productivity, however, understanding that increased water saturation past an ideal point, can result in anoxic conditions that are negative for the rhizosphere, and cause physiological harm through pathways such as rootrot.*
 ---
 
 ## 5) Visualize at least two one-predictor models
@@ -184,15 +186,15 @@ ggplot(df_mod, aes(x = .data[[pred2]], y = .data[[response_var]])) +
 ```
 
 > Visually, which model seems stronger? Why?
-
+*Model two, despite having a larger spread overall seems more compelling to me. this is because while model 1 has a strong correlation and little spread in the beginning of the graph, it begins to lose shape and increase in scatter as the TA gets higher. This implies to me that the relationship holds strong in the first half of the model but not the second half. Alternatively model 2 has a fairly consistent spread, shape, and pattern across the whole graph, perhaps even getting a stronger pattern towards the right side. To me this consistency makes it a better fit for drawing conclusions.*
 ---
 
 ## 6) Get fitted values and residuals with `augment()`
 
 ```{r augment_models, echo=TRUE, eval=FALSE}
-aug_m1 <- augment(m1, data = df_mod)
-aug_m2 <- augment(m2, data = df_mod)
-aug_m3 <- augment(m3, data = df_mod)
+aug_m1 <- augment(m1)
+aug_m2 <- augment(m2)
+aug_m3 <- augment(m3)
 
 aug_m1 %>% select(.fitted, .resid) %>% head()
 ```
@@ -237,7 +239,7 @@ Use:
 $R^2 = 1 - SSE / SST$
 
 ```{r r2_manual, echo=TRUE, eval=FALSE}
-r2_m1_manual <- ___
+r2_m1_manual <- 1 - (sse_m1 / sst)
 
 r2_m1_manual
 ```
@@ -249,7 +251,7 @@ glance(m1)
 ```
 
 > Does your manual R-squared match the value from `glance()`?
-
+*My manual calculation does match the value from glance. However I get a more precise value from the manual calculation.*
 ---
 
 ## 10) Compute MSE and RMSE for Model 1
@@ -260,8 +262,8 @@ Use:
 - $RMSE = sqrt(MSE)$
 
 ```{r mse_rmse_m1, echo=TRUE, eval=FALSE}
-mse_m1 <- ___
-rmse_m1 <- ___
+mse_m1 <- mean(aug_m1$.resid^2)
+rmse_m1 <- sqrt(mse_m1)
 
 tibble(
   mse_m1 = mse_m1,
@@ -292,13 +294,13 @@ bind_rows(
 
 ```{r compare_rmse, echo=TRUE, eval=FALSE}
 rmse_tbl <- bind_rows(
-  augment(m1, data = df_mod) %>%
+  augment(m1) %>%
     summarise(rmse = sqrt(mean(.resid^2))) %>%
     mutate(model = "m1"),
-  augment(m2, data = df_mod) %>%
+  augment(m2) %>%
     summarise(rmse = sqrt(mean(.resid^2))) %>%
     mutate(model = "m2"),
-  augment(m3, data = df_mod) %>%
+  augment(m3) %>%
     summarise(rmse = sqrt(mean(.resid^2))) %>%
     mutate(model = "m3")
 )
@@ -327,7 +329,7 @@ ggplot(aug_m1, aes(x = .fitted, y = .resid)) +
 ```
 
 ```{r resid_plot_m3, echo=TRUE, eval=FALSE}
-ggplot(aug_m3, aes(x = .fitted, y = .resid)) +
+ggplot(aug_m2, aes(x = .fitted, y = .resid)) +
   geom_point(alpha = 0.2) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   theme_classic(base_size = 18) +
