@@ -1,5 +1,5 @@
 ---
-title: "Lab 07 — Model Selection and Validation"
+title: "Lab 08 — Model Selection and Validation"
 author: "EAES 480 — Modern Statistics in Earth & Environmental Science"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 output:
