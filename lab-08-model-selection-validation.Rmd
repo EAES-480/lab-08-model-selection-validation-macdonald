@@ -397,8 +397,8 @@ Possible examples depend on your file, but might include things like:
 
 ```{r choose_new_predictors, echo=TRUE, eval=FALSE}
 response_var <- "le"
-pred1 <- "___"
-pred2 <- "___"
+pred1 <- "month"
+pred2 <- "reco"
 
 # CHECK: do these exist?
 c(response_var, pred1, pred2) %in% names(df)
@@ -406,6 +406,8 @@ c(response_var, pred1, pred2) %in% names(df)
 
 > Why did you choose these two predictors?
 
+
+*I chose these predictors because I believe that the time of the year, represented through months will have a strong effect on latent heat flux by controlling the amount of energy entering the system. Similarly the ecosystem respiration will play a strong role through evapotranspiration, as well as being strongly correlated to factors that will affect the LE such as incoming solar radiation.*
 ---
 
 ## 16) Create a clean modeling dataset
@@ -414,14 +416,14 @@ Keep only complete cases for the response and the two predictors.
 
 ```{r make_prediction_df, echo=TRUE, eval=FALSE}
 df_pred <- df %>%
-  select(___, ___, ___) %>%
+  select(response_var, pred1, pred2) %>%
   drop_na()
 
 glimpse(df_pred)
 ```
 
 > How many observations remain after removing missing values?
-
+*16,937 observations remain*
 ---
 
 ## 17) Shuffle rows and create a train/test split
@@ -429,7 +431,7 @@ glimpse(df_pred)
 Use 20% of the data as a final **test set**.
 
 ```{r split_train_test, echo=TRUE, eval=FALSE}
-set.seed(___)
+set.seed(586)
 
 df_shuf <- df_pred %>%
   slice_sample(prop = 1)
@@ -448,6 +450,7 @@ tibble(
 
 > Why do we keep the test set separate from model selection?
 
+*We keep a test set separate in order to have a reliable way to test the model on data that did not contribute to its conception. If the data used to test it was used in the model's creation then it would bias the model towards the data. To avoid this a separate data subset is taken and used to test how well the model functions.*
 ---
 
 ## 18) Define two candidate models
@@ -459,16 +462,16 @@ Use:
 
 Write them out in words below:
 
-> Model 1: `___`
+> Model 1: `Latent heat flux is controlled by predictor variable 1, the month of the year.`
 
-> Model 2: `___`
+> Model 2: `Latent heat flux is controlled by predictor variable one and predictor variable two, the month of the year, and ecosystem respiration respectively`
 
 ---
 
 ## 19) Create 4 folds on the training data
 
 ```{r make_cv_folds, echo=TRUE, eval=FALSE}
-set.seed(___)
+set.seed(843)
 
 train_folds <- train_data %>%
   mutate(fold = rep(1:4, length.out = n()))
@@ -477,6 +480,8 @@ train_folds %>% count(fold)
 ```
 
 > Why do we create folds only on the training data, and not using the test data?
+*We create folds on only the training data because we want to be able to test the performance of the model without incorporating the test data. The test data needs to be used as a final test of the model, unutilized in the model creation. In order to determine the model performance without using the test data we fold the training data.*
+
 
 ---
 
@@ -494,8 +499,8 @@ cv_results <- map_dfr(1:4, function(k) {
   cv_train <- train_folds %>% filter(fold != k)
   cv_valid <- train_folds %>% filter(fold == k)
 
-  m1 <- lm(___ ~ ___, data = cv_train)
-  m2 <- lm(___ ~ ___ + ___, data = cv_train)
+  m1 <- lm(cv_valid[[response_var]] ~ cv_valid[[pred1]], data = cv_train)
+  m2 <- lm(cv_valid[[response_var]] ~ cv_valid[[pred1]] + cv_valid[[pred2]], data = cv_train)
 
   tibble(
     fold = k,
@@ -520,8 +525,8 @@ Compute the mean and SD of RMSE across folds.
 cv_summary <- cv_results %>%
   group_by(model) %>%
   summarise(
-    mean_rmse = ___,
-    sd_rmse = ___,
+    mean_rmse = mean(rmse),
+    sd_rmse = sd(rmse),
     .groups = "drop"
   )
 
@@ -529,8 +534,11 @@ cv_summary
 ```
 
 > Which model has the lower average validation RMSE?  
-> What does the SD across folds tell you?
 
+*Model two has a lower average validation RMSE*
+
+> What does the SD across folds tell you?
+*The SD across folds tells us the model's variation in performance across the different folds.*
 ---
 
 ## 22) Visualize fold-by-fold validation RMSE
@@ -548,16 +556,16 @@ ggplot(cv_results, aes(x = factor(fold), y = rmse, color = model, group = model)
 ```
 
 > Does one model win consistently across folds, or only sometimes?
-
+*Model 2 consistently outperforms model 1 across the different folds.*
 ---
 
 ## 23) Choose your preferred model
 
 Fill in:
 
-> My selected model is: `___`
+> My selected model is: `Model 2`
 
-> I chose it because: `___`
+> I chose it because: `It consistently outperformed model one in Validation RMSE, which is fortified with a lower mean RMSE. Although it has a higher SD rmse, it is still much lower RMSE.`
 
 ---
 
@@ -566,7 +574,7 @@ Fill in:
 Use all of `train_data` now that you have selected the model.
 
 ```{r refit_final_model, echo=TRUE, eval=FALSE}
-final_model <- lm(___, data = train_data)
+final_model <- lm(train_data[[response_var]] ~ train_data[[pred1]] + train_data[[pred2]], data = train_data)
 
 tidy(final_model)
 ```
@@ -586,7 +594,7 @@ test_rmse
 ```
 
 > How does the test RMSE compare with the cross-validation RMSE?
-
+*The test data has a higher RMSE than any of the cross validation RMSE.*
 ---
 
 ## 26) Final interpretation
@@ -598,7 +606,7 @@ Answer in **5–7 sentences**:
 - Did the chosen model generalize well to test data?
 - What would it mean if test RMSE were much worse than validation RMSE?
 
-> *Write your answer here.*
+> *I did not use the test data during model selection because that data needs to be used later to test the fit of the model. By folding the training data I am able to keep the selection of the model separate from the testing of the model, which also allows us to reduce the noise in model testing. Cross validation helped me choose between the models because it allowed me to evaluate how consistently each of the models performed, and whether one model outperformed the other consistently. The chosen model did not generalize as well as what I may have expected from the cross-validation performance. This speaks to the necessity of keeping the testing data and evaluation separate. A higher test RMSE may indicate that the test data was, by chance, a non-representative sample of the total population. This can be expected to happen sometimes, which is why it is important to have the cross-validation, which provides extra support to the model selected.*
 
 ---
 
